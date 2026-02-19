@@ -17,7 +17,7 @@ router.post('/register', async (req, res) => {
         // 2. Create User (In real app, hash password here)
         // Defaulting salary/tax for demo purposes
         const newUser = await db.query(`
-            INSERT INTO employees (first_name, last_name, email, password_hash, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
+            INSERT INTO employees (first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
             VALUES ($1, $2, $3, $4, $5, 50000, 1, 25000, 12500, 12500)
             RETURNING id, first_name, last_name, email, role
         `, [first_name, last_name, email, password, role || 'EMPLOYEE']);
@@ -44,8 +44,8 @@ router.post('/login', async (req, res) => {
         const user = result.rows[0];
 
         // 2. Check Password (Simple check for demo, use bcrypt in prod)
-        // In a real app: await bcrypt.compare(password, user.password_hash)
-        if (password !== user.password_hash) {
+        // In a real app: await bcrypt.compare(password, user.password)
+        if (password !== user.password) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -125,7 +125,7 @@ router.post('/reset-password', async (req, res) => {
 
         // Update Password
         await db.query(
-            'UPDATE employees SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE id = $2',
+            'UPDATE employees SET password = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE id = $2',
             [newPassword, user.id]
         );
 
