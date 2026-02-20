@@ -20,9 +20,21 @@ initCronJobs();
 // Middleware
 app.use(helmet());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+        const allowed = [
+            process.env.FRONTEND_URL,
+            'http://localhost:5173'
+        ].filter(Boolean);
+
+        if (!origin || allowed.includes(origin) || origin.endsWith('.vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
+
 app.use(morgan('dev'));
 app.use(express.json());
 
