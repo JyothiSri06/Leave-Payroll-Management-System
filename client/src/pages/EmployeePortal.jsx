@@ -11,6 +11,8 @@ export default function EmployeePortal() {
     const [chatQuery, setChatQuery] = useState('');
     const [chatResponse, setChatResponse] = useState('');
     const [leaveReason, setLeaveReason] = useState('');
+    const [loadingPayslip, setLoadingPayslip] = useState(false);
+
 
     // Attendance State
     const [attendanceStatus, setAttendanceStatus] = useState('LOADING'); // NOT_CHECKED_IN, CHECKED_IN, CHECKED_OUT
@@ -24,11 +26,21 @@ export default function EmployeePortal() {
         }
     }, [user]);
 
+    const fetchLatestPayslip = async () => {
+        setLoadingPayslip(true);
+        try {
+            const res = await axios.get(`/api/payroll/latest/${user.id}`);
+            setPayslip(res.data);
+        } catch (err) {
+            setPayslip(null);
+        } finally {
+            setLoadingPayslip(false);
+        }
+    };
+
     const fetchEmployeeData = () => {
         // Get Payslip
-        axios.get(`/api/payroll/latest/${user.id}`)
-            .then(res => setPayslip(res.data))
-            .catch(err => setPayslip(null));
+        fetchLatestPayslip();
 
         // Get Leave Balance
         axios.get(`/api/leaves/balance/${user.id}`)
@@ -240,9 +252,19 @@ export default function EmployeePortal() {
                 <div className="space-y-6">
                     {/* Payslip Card */}
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 transition-colors">
-                        <div className="flex items-center gap-2 mb-4 text-green-600 dark:text-green-400">
-                            <FileText size={20} />
-                            <h3 className="font-semibold">Recent Payslip</h3>
+                        <div className="flex items-center justify-between mb-4">
+
+                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <FileText size={20} />
+                                <h3 className="font-semibold">Recent Payslip</h3>
+                            </div>
+                            <button
+                                onClick={fetchLatestPayslip}
+                                disabled={loadingPayslip}
+                                className="text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded hover:bg-green-100 transition-colors disabled:opacity-50"
+                            >
+                                {loadingPayslip ? 'Refreshing...' : 'Refresh'}
+                            </button>
                         </div>
                         {payslip ? (
                             <>
@@ -399,6 +421,6 @@ export default function EmployeePortal() {
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
