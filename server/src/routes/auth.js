@@ -14,21 +14,33 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'User already exists' });
         }
 
-        // 2. Create User (In real app, hash password here)
-        // Defaulting salary/tax for demo purposes
+        // 2. Fetch a default tax slab (instead of hardcoding ID 1)
+        const taxSlab = await db.query('SELECT id FROM tax_configuration ORDER BY min_salary ASC LIMIT 1');
+        if (taxSlab.rows.length === 0) {
+            return res.status(500).json({ error: 'Database configuration error: No tax slabs found. Please run the schema.sql seed data.' });
+        }
+        const defaultTaxSlabId = taxSlab.rows[0].id;
+
+        // 3. Create User
+        // Defaulting salary/tax components
         const newUser = await db.query(`
             INSERT INTO employees (first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
-            VALUES ($1, $2, $3, $4, $5, 50000, 1, 25000, 12500, 12500)
+            VALUES ($1, $2, $3, $4, $5, 50000, $6, 25000, 12500, 12500)
             RETURNING id, first_name, last_name, email, role
-        `, [first_name, last_name, email, password, role || 'EMPLOYEE']);
+        `, [first_name, last_name, email, password, role || 'EMPLOYEE', defaultTaxSlabId]);
 
         res.status(201).json(newUser.rows[0]);
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server Error' });
+        console.error('Registration Error:', err);
+        res.status(500).json({
+            error: 'Server Error during registration',
+            details: err.message,
+            hint: 'Ensure uuid-ossp extension is enabled in Supabase and all tables were created correctly.'
+        });
     }
 });
+
 
 // Login Endpoint
 router.post('/login', async (req, res) => {
