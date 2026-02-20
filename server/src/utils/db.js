@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const isProduction = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL.includes('render');
+const isProduction = process.env.NODE_ENV === 'production' || process.env.DATABASE_URL.includes('render') || process.env.DATABASE_URL.includes('supabase');
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
