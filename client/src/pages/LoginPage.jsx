@@ -28,6 +28,26 @@ export default function LoginPage() {
         }
     };
 
+    const handleDemoLogin = async (role) => {
+        const demoEmail = role === 'ADMIN' ? 'john@example.com' : 'employee@example.com';
+        const demoPassword = 'password123';
+        setEmail(demoEmail);
+        setPassword(demoPassword);
+        setError('');
+
+        try {
+            const res = await axios.post('/api/auth/login', { email: demoEmail, password: demoPassword });
+            login(res.data);
+            if (res.data.role === 'ADMIN') {
+                navigate('/admin');
+            } else {
+                navigate('/employee');
+            }
+        } catch (err) {
+            setError(err.response?.data?.error || `Demo ${role} Login failed. Please ensure the backend is running and accounts are seeded.`);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-slate-950 flex items-center justify-center p-4 transition-colors duration-300">
             <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-lg w-full max-w-md border border-gray-100 dark:border-slate-800 transition-colors">
@@ -81,12 +101,31 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                <div className="mt-4 text-center text-sm">
+                <div className="mt-6 border-t border-gray-100 dark:border-slate-800 pt-6">
+                    <p className="text-center text-sm text-gray-500 mb-4 font-medium dark:text-slate-400">
+                        Fast Login for Recruiters
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => handleDemoLogin('ADMIN')}
+                            className="flex-1 bg-indigo-50 text-indigo-700 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-900/50"
+                        >
+                            Demo Admin
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleDemoLogin('EMPLOYEE')}
+                            className="flex-1 bg-teal-50 text-teal-700 py-2 rounded-lg text-sm font-semibold hover:bg-teal-100 transition border border-teal-100 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800 dark:hover:bg-teal-900/50"
+                        >
+                            Demo Employee
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-6 text-center text-sm">
                     <span className="text-gray-500">Don't have an account? </span>
                     <Link to="/signup" className="text-blue-600 font-semibold hover:underline">Sign Up</Link>
-                </div>
-                <div className="mt-2 text-center text-xs text-gray-400">
-                    Default Admin: john@example.com / password123
                 </div>
             </div>
         </div>

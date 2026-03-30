@@ -119,6 +119,12 @@ export default function SignupPage() {
                     <span className="text-gray-500 dark:text-slate-400">Already have an account? </span>
                     <Link to="/login" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline transition-colors">Sign In</Link>
                 </div>
+                
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 text-center">
+                    <p className="text-xs text-gray-500 dark:text-slate-400">
+                        Just here to look around? <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline">Use the demo accounts on the login page.</Link>
+                    </p>
+                </div>
             </div>
         </div>
     );
