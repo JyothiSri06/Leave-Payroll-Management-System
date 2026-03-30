@@ -6,6 +6,7 @@
     "scripts": {
         "start": "node src/app.js",
         "dev": "nodemon src/app.js",
+        "seed": "node src/seed.js",
         "test": "jest"
     },
     "dependencies": {
