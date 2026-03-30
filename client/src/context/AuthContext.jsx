@@ -1,8 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
-axios.defaults.baseURL = API_URL;
+import api from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -20,9 +17,9 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (user && user.token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
+            api.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
         } else {
-            delete axios.defaults.headers.common['Authorization'];
+            delete api.defaults.headers.common['Authorization'];
         }
     }, [user]);
 

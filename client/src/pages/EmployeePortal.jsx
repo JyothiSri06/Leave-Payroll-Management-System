@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../utils/api';
 import { Calendar, FileText, MessageCircle, Clock } from 'lucide-react';
 
 export default function EmployeePortal() {
@@ -29,7 +29,7 @@ export default function EmployeePortal() {
     const fetchLatestPayslip = async () => {
         setLoadingPayslip(true);
         try {
-            const res = await axios.get(`/api/payroll/latest/${user.id}`);
+            const res = await api.get(`/payroll/latest/${user.id}`);
             setPayslip(res.data);
         } catch (err) {
             setPayslip(null);
@@ -43,17 +43,17 @@ export default function EmployeePortal() {
         fetchLatestPayslip();
 
         // Get Leave Balance
-        axios.get(`/api/leaves/balance/${user.id}`)
+        api.get(`/leaves/balance/${user.id}`)
             .then(res => setBalances(res.data))
             .catch(err => console.error(err));
 
         // Get Leave History
-        axios.get(`/api/leaves/${user.id}`)
+        api.get(`/leaves/${user.id}`)
             .then(res => setLeaveHistory(res.data))
             .catch(err => console.error(err));
 
         // Get Attendance Status
-        axios.get(`/api/attendance/status/${user.id}`)
+        api.get(`/attendance/status/${user.id}`)
             .then(res => {
                 setAttendanceStatus(res.data.status);
                 setAttendanceData(res.data.data);
@@ -61,12 +61,12 @@ export default function EmployeePortal() {
             .catch(err => console.error(err));
 
         // Get Attendance History
-        axios.get(`/api/attendance/${user.id}`)
-            .then(res => setAttendanceHistory(res.data))
+        api.get(`/attendance/${user.id}`)
+            .then(res => setLeaveHistory(res.data))
             .catch(err => console.error(err));
 
         // Get Attendance Statistics
-        axios.get(`/api/attendance/stats/${user.id}`)
+        api.get(`/attendance/stats/${user.id}`)
             .then(res => setAttendanceStats(res.data))
             .catch(err => console.error(err));
     };
@@ -76,7 +76,7 @@ export default function EmployeePortal() {
         if (!chatQuery) return;
 
         try {
-            const res = await axios.post('/api/payroll/chat', { query: chatQuery });
+            const res = await api.post('/payroll/chat', { query: chatQuery });
             setChatResponse(res.data.answer);
         } catch (err) {
             console.error(err);
@@ -91,7 +91,7 @@ export default function EmployeePortal() {
         }
 
         try {
-            await axios.post('/api/leaves', {
+            await api.post('/leaves', {
                 employee_id: user.id, // Use Logged-in User ID
                 leave_type: type === 'Sick' ? 'SICK' : 'CASUAL',
                 start_date: new Date().toISOString().split('T')[0],
@@ -102,7 +102,7 @@ export default function EmployeePortal() {
             alert(`${type} Leave Requested Successfully!`);
             setLeaveReason('');
             // Refresh history
-            axios.get(`/api/leaves/${user.id}`).then(res => setLeaveHistory(res.data));
+            api.get(`/leaves/${user.id}`).then(res => setLeaveHistory(res.data));
         } catch (err) {
             console.error(err);
             alert('Error requesting leave');
@@ -111,7 +111,7 @@ export default function EmployeePortal() {
 
     const handleClockIn = async () => {
         try {
-            const res = await axios.post('/api/attendance/checkin', { employeeId: user.id });
+            const res = await api.post('/attendance/checkin', { employeeId: user.id });
             setAttendanceData(res.data);
             setAttendanceStatus('CHECKED_IN');
             fetchEmployeeData(); // Refresh history
@@ -123,7 +123,7 @@ export default function EmployeePortal() {
 
     const handleClockOut = async () => {
         try {
-            const res = await axios.post('/api/attendance/checkout', { employeeId: user.id });
+            const res = await api.post('/attendance/checkout', { employeeId: user.id });
             setAttendanceData(res.data);
             setAttendanceStatus('CHECKED_OUT');
             fetchEmployeeData(); // Refresh history

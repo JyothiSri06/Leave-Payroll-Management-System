@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../utils/api';
 import { Users, DollarSign, CalendarCheck, Download, Clock } from 'lucide-react';
 import { DashboardCharts } from '../components/DashboardCharts';
 import * as XLSX from 'xlsx';
@@ -32,13 +32,13 @@ export default function AdminDashboard() {
     const fetchDashboardData = async () => {
         try {
             const results = await Promise.allSettled([
-                axios.get('/api/employees'),
-                axios.get('/api/payroll/admin/history'), // Returns all history
-                axios.get('/api/leaves/admin/pending'),
-                axios.get('/api/leaves/admin/all'), // New endpoint for stats
-                axios.get('/api/attendance/admin/today'),
-                axios.get('/api/attendance/admin/overall-stats'),
-                axios.get('/api/attendance/admin/monthly-report')
+                api.get('/employees'),
+                api.get('/payroll/admin/history'), // Returns all history
+                api.get('/leaves/admin/pending'),
+                api.get('/leaves/admin/all'), // New endpoint for stats
+                api.get('/attendance/admin/today'),
+                api.get('/attendance/admin/overall-stats'),
+                api.get('/attendance/admin/monthly-report')
             ]);
 
             const empRes = results[0].status === 'fulfilled' ? results[0].value.data : [];
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
 
     const fetchPayrollHistory = async (empId) => {
         try {
-            const res = await axios.get(`/api/payroll/history/${empId}`);
+            const res = await api.get(`/payroll/history/${empId}`);
             setPayrollHistory(res.data);
         } catch (err) {
             console.error("Error fetching payroll history", err);
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
         setLoadingPayroll(true);
         try {
             // Defaulting to current month for demo
-            const res = await axios.post(`/api/payroll/run/${selectedEmployee}`, {
+            const res = await api.post(`/payroll/run/${selectedEmployee}`, {
                 payPeriodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
                 payPeriodEnd: new Date().toISOString().split('T')[0],
                 bonus: bonus,
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
 
     const handleMarkAsPaid = async (payrollId) => {
         try {
-            await axios.put(`/api/payroll/${payrollId}/pay`);
+            await api.put(`/payroll/${payrollId}/pay`);
             alert('Marked as Paid!');
             fetchPayrollHistory(selectedEmployee); // Refresh history
         } catch (err) {
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
 
     const handleLeaveAction = async (id, status) => {
         try {
-            await axios.put(`/api/leaves/${id}/status`, { status });
+            await api.put(`/leaves/${id}/status`, { status });
             alert(`Leave ${status} Successfully!`);
             fetchDashboardData(); // Refresh list
         } catch (err) {
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
     const handleEditSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`/api/employees/${editFormData.id}`, {
+            await api.put(`/employees/${editFormData.id}`, {
                 salary: editFormData.salary,
                 basic_salary: editFormData.basic_salary,
                 hra: editFormData.hra,

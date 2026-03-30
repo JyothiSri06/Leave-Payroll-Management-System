@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { User, Mail, Lock, Briefcase } from 'lucide-react';
 
 export default function SignupPage() {
@@ -23,7 +23,7 @@ export default function SignupPage() {
         setError('');
 
         try {
-            await axios.post('/api/auth/register', formData);
+            await api.post('/auth/register', formData);
             alert('Registration Successful! Please Login.');
             navigate('/login');
         } catch (err) {

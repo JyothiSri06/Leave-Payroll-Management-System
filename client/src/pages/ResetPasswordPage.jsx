@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { Lock } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
         setLoading(true);
 
         try {
-            await axios.post('/api/auth/reset-password', { token, newPassword: password });
+            await api.post('/auth/reset-password', { token, newPassword: password });
             setMessage('Password reset successful! Redirecting to login...');
             setTimeout(() => navigate('/login'), 2000);
         } catch (err) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
         setLoading(true);
 
         try {
-            const res = await axios.post('/api/auth/forgot-password', { email });
+            const res = await api.post('/auth/forgot-password', { email });
             setMessage(res.data.message);
             if (res.data.resetLink) {
                 setResetLink(res.data.resetLink);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { Lock, User } from 'lucide-react';
 
 export default function LoginPage() {
@@ -16,7 +16,7 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const res = await axios.post('/api/auth/login', { email, password });
+            const res = await api.post('/auth/login', { email, password });
             login(res.data);
             if (res.data.role === 'ADMIN') {
                 navigate('/admin');
@@ -36,7 +36,7 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const res = await axios.post('/api/auth/login', { email: demoEmail, password: demoPassword });
+            const res = await api.post('/auth/login', { email: demoEmail, password: demoPassword });
             login(res.data);
             if (res.data.role === 'ADMIN') {
                 navigate('/admin');

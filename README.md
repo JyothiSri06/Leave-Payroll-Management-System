@@ -57,36 +57,69 @@ Maintains historical, immutable records of all processed pay runs, including exa
 
 ---
 
-## 🚀 Getting Started (Local Development)
+---
+ 
+ ## 🚀 Getting Started (Local Development)
+ 
+ ### Prerequisites
+ - Node.js (v18+)
+ - PostgreSQL (Database: `payroll_erp`)
+ - Google Gemini API Key
+ 
+ ### Installation
+ 
+ 1. **Clone the repository:**
+    ```bash
+    git clone <your-repo-link>
+    cd <your-repo-name>
+    ```
+ 
+ 2. **Backend Setup:**
+    ```bash
+    cd server
+    npm install
+    # Create a .env file based on .env.example
+    npm run dev
+    ```
+ 
+ 3. **Frontend Setup:**
+    ```bash
+    cd client
+    npm install
+    npm run dev
+    ```
+ 
+ ---
 
-### Prerequisites
-- Node.js (v18+)
-- PostgreSQL (Database: `payroll_erp`)
-- Google Gemini API Key
+## 🌐 Production Deployment Guide
 
-### Installation
+Follow these steps to deploy the full-stack application and connect all services.
 
-1. **Clone the repository:**
-   ```bash
-   git clone <your-repo-link>
-   cd <your-repo-name>
-   ```
+### 1. Database (Supabase / Neon)
+1. Create a new PostgreSQL project on **Supabase** or **Neon**.
+2. Run the SQL commands found in `server/database/schema.sql` (or `schema.sql` in the root) within your database's SQL editor to set up the tables and triggers.
+3. **Important:** Run the `server/src/seed.js` script locally (pointing to your production DB URL) or manually insert demo users to enable the "One-Click Login" feature.
 
-2. **Backend Setup:**
-   ```bash
-   cd server
-   npm install
-   # Create a .env file based on .env.example
-   npm run dev
-   ```
+### 2. Backend (Render)
+1. Create a new **Web Service** on Render.
+2. Connect your GitHub repository.
+3. Set the **Root Directory** to `server`.
+4. **Build Command:** `npm install`
+5. **Start Command:** `npm start`
+6. Add the following **Environment Variables**:
+    - `DATABASE_URL`: Your production PostgreSQL connection string.
+    - `JWT_SECRET`: A long random string (e.g., `my_secret_key_123`).
+    - `FRONTEND_URL`: Your Vercel deployment URL (e.g., `https://project.vercel.app`).
+    - `GEMINI_API_KEY`: Your Google AI API key.
+    - `NODE_ENV`: `production`
 
-3. **Frontend Setup:**
-   ```bash
-   cd client
-   npm install
-   # Ensure Vite proxy is pointed to http://localhost:5000
-   npm run dev
-   ```
+### 3. Frontend (Vercel)
+1. Create a new project on Vercel and import your repository.
+2. Set the **Framework Preset** to `Vite`.
+3. Set the **Root Directory** to `client`.
+4. Add the following **Environment Variable**:
+    - `VITE_API_URL`: Your Render backend URL (e.g., `https://project-api.onrender.com`).
+5. Deploy! Vercel will automatically build the React app and link it to your backend.
 
 ---
 
