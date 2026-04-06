@@ -2,9 +2,13 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const validate = require('../middleware/validate');
+const { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } = require('../schemas/auth.schema');
+const SALT_ROUNDS = 10;
 
 // Register Endpoint
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerSchema), async (req, res) => {
     const { first_name, last_name, email, password, role } = req.body;
 
     try {
@@ -23,11 +27,13 @@ router.post('/register', async (req, res) => {
 
         // 3. Create User
         // Defaulting salary/tax components
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        
         const newUser = await db.query(`
             INSERT INTO employees (first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
             VALUES ($1, $2, $3, $4, $5, 50000, $6, 25000, 12500, 12500)
             RETURNING id, first_name, last_name, email, role
-        `, [first_name, last_name, email, password, role || 'EMPLOYEE', defaultTaxSlabId]);
+        `, [first_name, last_name, email, hashedPassword, role || 'EMPLOYEE', defaultTaxSlabId]);
 
         res.status(201).json(newUser.rows[0]);
 
@@ -43,7 +49,7 @@ router.post('/register', async (req, res) => {
 
 
 // Login Endpoint
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
     const { email, password } = req.body;
 
     try {
@@ -55,9 +61,9 @@ router.post('/login', async (req, res) => {
 
         const user = result.rows[0];
 
-        // 2. Check Password (Simple check for demo, use bcrypt in prod)
-        // In a real app: await bcrypt.compare(password, user.password)
-        if (password !== user.password) {
+        // 2. Check Password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -83,7 +89,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Forgot Password Endpoint
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
     const { email } = req.body;
     const crypto = require('crypto');
 
@@ -119,7 +125,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Reset Password Endpoint
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', validate(resetPasswordSchema), async (req, res) => {
     const { token, newPassword } = req.body;
 
     try {
@@ -136,9 +142,10 @@ router.post('/reset-password', async (req, res) => {
         const user = result.rows[0];
 
         // Update Password
+        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
         await db.query(
             'UPDATE employees SET password = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE id = $2',
-            [newPassword, user.id]
+            [hashedPassword, user.id]
         );
 
         res.json({ message: 'Password reset successful' });

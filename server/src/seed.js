@@ -1,5 +1,7 @@
 require('dotenv').config();
 const db = require('./utils/db');
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10;
 
 async function seed() {
     try {
@@ -21,13 +23,16 @@ async function seed() {
         const taxSlab = await db.query('SELECT id FROM tax_configuration ORDER BY min_salary ASC LIMIT 1');
         const defaultTaxSlabId = taxSlab.rows[0].id;
 
+        // Hash the demo password
+        const hashedPassword = await bcrypt.hash('password123', SALT_ROUNDS);
+
         // 2. Create Demo Admin
         console.log('Seeding Admin: john@example.com / password123');
         await db.query(`
             INSERT INTO employees (first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (email) DO NOTHING
-        `, ['John', 'Admin', 'john@example.com', 'password123', 'ADMIN', 120000, defaultTaxSlabId, 60000, 30000, 30000]);
+        `, ['John', 'Admin', 'john@example.com', hashedPassword, 'ADMIN', 120000, defaultTaxSlabId, 60000, 30000, 30000]);
 
         // 3. Create Demo Employee
         console.log('Seeding Employee: employee@example.com / password123');
@@ -35,7 +40,7 @@ async function seed() {
             INSERT INTO employees (first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (email) DO NOTHING
-        `, ['Jane', 'Doe', 'employee@example.com', 'password123', 'EMPLOYEE', 80000, defaultTaxSlabId, 40000, 20000, 20000]);
+        `, ['Jane', 'Doe', 'employee@example.com', hashedPassword, 'EMPLOYEE', 80000, defaultTaxSlabId, 40000, 20000, 20000]);
 
         console.log('--- Seed Complete! ---');
         console.log('You can now use the One-Click Login buttons on the frontend.');
