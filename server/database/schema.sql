@@ -149,11 +149,56 @@ CREATE INDEX IF NOT EXISTS idx_payroll_runs_tenant_emp_period ON payroll_runs(te
 CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_id ON audit_logs(tenant_id, changed_at);
 
 -- Seed Initial Tax Slabs
-INSERT INTO tax_configuration (min_salary, max_salary, tax_percentage, region) 
-SELECT 0, 500000, 0, 'General' WHERE NOT EXISTS (SELECT 1 FROM tax_configuration WHERE id = 1);
+INSERT INTO tax_configuration (id, min_salary, max_salary, tax_percentage, region) 
+VALUES 
+(1, 0, 500000, 0, 'General'),
+(2, 500001, 1000000, 10, 'General'),
+(3, 1000001, 99999999, 20, 'General')
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO tax_configuration (min_salary, max_salary, tax_percentage, region) 
-SELECT 500001, 1000000, 10, 'General' WHERE NOT EXISTS (SELECT 1 FROM tax_configuration WHERE id = 2);
+-- Seed Initial Tenants & Demo Accounts
+INSERT INTO tenants (id, name, code) 
+VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Acme Corp', 'acme_corp')
+ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO tax_configuration (min_salary, max_salary, tax_percentage, region) 
-SELECT 1000001, 99999999, 20, 'General' WHERE NOT EXISTS (SELECT 1 FROM tax_configuration WHERE id = 3);
+INSERT INTO tenants (id, name, code) 
+VALUES ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'Globex Corp', 'globex_corp')
+ON CONFLICT (code) DO NOTHING;
+
+-- Seed Demo Admin (John Admin - Acme Corp)
+INSERT INTO employees (id, tenant_id, first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
+VALUES (
+    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'John', 'Admin', 'john@example.com',
+    '$2b$10$RkACvFFiia5DWk67JsfakOWGAiia7d5dIqdhvfpLTYvpuMYP4G63G',
+    'ADMIN', 120000, 1, 60000, 30000, 30000
+) ON CONFLICT (tenant_id, email) DO NOTHING;
+
+-- Seed Demo Employee (Jane Doe - Acme Corp)
+INSERT INTO employees (id, tenant_id, first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
+VALUES (
+    'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Jane', 'Doe', 'employee@example.com',
+    '$2b$10$RkACvFFiia5DWk67JsfakOWGAiia7d5dIqdhvfpLTYvpuMYP4G63G',
+    'EMPLOYEE', 80000, 1, 40000, 20000, 20000
+) ON CONFLICT (tenant_id, email) DO NOTHING;
+
+-- Seed Demo Admin (Alice - Globex Corp)
+INSERT INTO employees (id, tenant_id, first_name, last_name, email, password, role, salary, tax_slab_id, basic_salary, hra, special_allowance)
+VALUES (
+    'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
+    'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    'Alice', 'GlobexAdmin', 'alice@globex.com',
+    '$2b$10$RkACvFFiia5DWk67JsfakOWGAiia7d5dIqdhvfpLTYvpuMYP4G63G',
+    'ADMIN', 150000, 1, 75000, 37500, 37500
+) ON CONFLICT (tenant_id, email) DO NOTHING;
+
+-- Seed Initial Leave Balances
+INSERT INTO leave_balances (tenant_id, employee_id, year, sick_leave_balance, casual_leave_balance, earned_leave_balance)
+VALUES 
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 2026, 12, 12, 15),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', 2026, 12, 12, 15),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55', 2026, 12, 12, 15)
+ON CONFLICT (tenant_id, employee_id, year) DO NOTHING;
