@@ -103,7 +103,7 @@ export default function LoginPage() {
 
                 <div className="mt-6 border-t border-gray-100 dark:border-slate-800 pt-6">
                     <p className="text-center text-sm text-gray-500 mb-4 font-medium dark:text-slate-400">
-                        Fast Login for Recruiters
+                        Demo Logins
                     </p>
                     <div className="flex gap-3">
                         <button
