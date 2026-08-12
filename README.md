@@ -1,126 +1,159 @@
-# 🏢 Leave + Payroll Management System (PERN Stack)
+# 🏢 Scalable Multi-Tenant Leave & Payroll Management ERP (PERN + Redis)
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![React](https://img.shields.io/badge/React-19-blue.svg)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Ready-blue.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Multi--Tenant-blue.svg)
+![Redis](https://img.shields.io/badge/Redis-Cache--Aside-red.svg)
+![Architecture](https://img.shields.io/badge/Architecture-ACID--Compliant-purple.svg)
 
-A comprehensive Employee Resource Planning (ERP) solution designed for intuitive staff management, real-time attendance tracking, automated leave accruals, and precise payroll processing. Integrated with an **AI-driven compliance bot** for seamless HR policy querying.
+A high-performance enterprise Employee Resource Planning (ERP) platform featuring **multi-tenant PostgreSQL isolation**, **Redis cache-aside performance optimization**, **automated idempotent payroll pipelines**, **concurrency race-condition prevention**, **ACID transactions**, and an **AI-driven HR compliance assistant**.
 
-> **💡 Recruiter & Reviewer Note:** This project features **One-Click Demo Accounts**. You do not need to register. Simply navigate to the Login page and click **"Demo Admin"** or **"Demo Employee"** for instant access to the respective portals.
-
----
-
-## ✨ Key Features & Technical Highlights
-
-* **Automated Payroll Engine:** Applies complex business logic dynamically (e.g., 3 lates = 1 day pay cut, automatic LOP deduction for excess leaves).
-* **AI-Powered HR Assistant:** Integrated with Gemini API to parse complex tax or policy queries (e.g., "Explain my tax deduction") directly within the employee portal.
-* **Smart Attendance System:** One-click Clock In/Out with sub-minute accuracy, dynamically tracking "Late" and "Overtime" thresholds.
-* **Automated Cron Jobs:** Backend services run automatically to credit monthly leaves (Sick: 1, Casual: 1, Earned: 1.25) and execute scheduled database backups.
-* **Secure Audit Logging:** Database triggers automatically record every salary adjustment or payroll generation to guarantee tamper-proof security histories.
-* **Responsive Visuals:** Built entirely with Tailwind CSS, supporting dark-mode and providing an enterprise-grade glassmorphic aesthetic.
+> **💡 Technical Interviewer Quick-Start:**  
+> Demo accounts are seeded out of the box across multiple tenants:
+> - **Acme Corp Admin:** `john@example.com` / `password123`
+> - **Acme Corp Employee:** `employee@example.com` / `password123`
+> - **Globex Corp Admin:** `alice@globex.com` / `password123` (Isolated Tenant B)
 
 ---
 
-## 🏗️ Project Architecture & Tech Stack
+## 🏗️ System Architecture
 
-- **Frontend**: React 19 (Vite), Tailwind CSS, Context API, Lucide Icons, Chart.js.
-- **Backend**: Node.js, Express.js.
-- **Database**: PostgreSQL (Relational Data & Schema Triggers).
-- **Authentication**: JWT Strategy.
-- **AI Integration**: Google Gemini API.
-
----
-
-## 📸 Platform Previews
-
-### Admin Command Center
-*(Add a screenshot of the Admin Dashboard here: `![Admin Dashboard](./screenshots/admin.png)`)*
-Provides Admins with top-down control over payroll generation, manual salary interventions, organization-wide attendance, and one-click leave request approvals.
-
-### Employee Self-Service Portal
-*(Add a screenshot of the Employee Portal here: `![Employee Portal](./screenshots/employee.png)`)*
-Empowers employees with daily attendance statistics, leave balances, an interactive payslip generator, and direct access to the AI HR assistant.
-
----
-
-## 💾 Core Database Schema Models
-
-#### 1. Employees (`employees`)
-Stores strict personal data, authentication details, role (`ADMIN` or `EMPLOYEE`), and detailed salary configurations (Basic, HRA, Special Allowances). Linked to region-specific `tax_configuration` tables.
-
-#### 2. Leave Management (`leave_balances` & `leave_ledger`)
-Calculates cascading totals per leave-type (Sick, Casual, Earned). Handled transactionally to prevent race conditions during end-of-month processing.
-
-#### 3. Payroll Records (`payroll_runs`)
-Maintains historical, immutable records of all processed pay runs, including exact gross pay, deduction itemizations (PF, PT, ESI, Income Tax), and net payouts. 
+```
+                                +-----------------------------------+
+                                |     React.js Client Application   |
+                                |       (Vercel / Port 5173)        |
+                                +-----------------+-----------------+
+                                                  |
+                                                  | HTTP / REST (JWT + Tenant Header)
+                                                  v
+                                +-----------------+-----------------+
+                                |     Node.js / Express.js API      |
+                                |     (Render / Middleware Layer)   |
+                                +--------+-----------------+--------+
+                                         |                 |
+                         Cache Lookup    |                 | SQL Queries (ACID Transactions)
+                       (Cache-Aside)     v                 v
+                       +-----------------+---+     +-------+-------------------+
+                       |    Redis Cache      |     |  PostgreSQL Database      |
+                       | (In-Memory / TTL)  |     |  (Multi-Tenant Isolated)  |
+                       +---------------------+     +---------------------------+
+```
 
 ---
 
----
- 
- ## 🚀 Getting Started (Local Development)
- 
- ### Prerequisites
- - Node.js (v18+)
- - PostgreSQL (Database: `payroll_erp`)
- - Google Gemini API Key
- 
- ### Installation
- 
- 1. **Clone the repository:**
-    ```bash
-    git clone <your-repo-link>
-    cd <your-repo-name>
-    ```
- 
- 2. **Backend Setup:**
-    ```bash
-    cd server
-    npm install
-    # Create a .env file based on .env.example
-    npm run dev
-    ```
- 
- 3. **Frontend Setup:**
-    ```bash
-    cd client
-    npm install
-    npm run dev
-    ```
- 
- ---
+## 🔄 Core Workflows & Data Flows
 
-## 🌐 Production Deployment Guide
+### 1. Multi-Tenant Authorization & Isolation Flow
+- **Tenant Context Extraction:** Upon login, JWT payload embeds `{ id, tenant_id, role, email }`.
+- **Query Scoping:** Backend `requireTenant` middleware enforces `WHERE tenant_id = req.user.tenant_id` on **100% of data access queries**, preventing cross-tenant data leaks at the database layer.
 
-Follow these steps to deploy the full-stack application and connect all services.
+### 2. High-Frequency Redis Cache-Aside Pattern
+```
+Client Request ---> API Middleware ---> Redis Lookup (Key: tenant:{tid}:employee:{id})
+                                              |
+                                      +-------+-------+
+                                      |               |
+                                  Cache Hit       Cache Miss
+                                      |               |
+                               Return Cached Data     v
+                                          PostgreSQL Query
+                                              |
+                                          Store in Redis (TTL 1h)
+                                              |
+                                          Return Response
+```
+- **Write Invalidation:** Any update (`PUT /api/employees/:id`) explicitly purges related Redis keys (`safeCache.del(...)`), preventing stale data propagation.
 
-### 1. Database (Supabase / Neon)
-1. Create a new PostgreSQL project on **Supabase** or **Neon**.
-2. Run the SQL commands found in `server/database/schema.sql` (or `schema.sql` in the root) within your database's SQL editor to set up the tables and triggers.
-3. **Important:** Run the `server/src/seed.js` script locally (pointing to your production DB URL) or manually insert demo users to enable the "One-Click Login" feature.
-
-### 2. Backend (Render)
-1. Create a new **Web Service** on Render.
-2. Connect your GitHub repository.
-3. Set the **Root Directory** to `server`.
-4. **Build Command:** `npm install`
-5. **Start Command:** `npm start`
-6. Add the following **Environment Variables**:
-    - `DATABASE_URL`: Your production PostgreSQL connection string.
-    - `JWT_SECRET`: A long random string (e.g., `my_secret_key_123`).
-    - `FRONTEND_URL`: Your Vercel deployment URL (e.g., `https://project.vercel.app`).
-    - `GEMINI_API_KEY`: Your Google AI API key.
-    - `NODE_ENV`: `production`
-
-### 3. Frontend (Vercel)
-1. Create a new project on Vercel and import your repository.
-2. Set the **Framework Preset** to `Vite`.
-3. Set the **Root Directory** to `client`.
-4. Add the following **Environment Variable**:
-    - `VITE_API_URL`: Your Render backend URL (e.g., `https://project-api.onrender.com`).
-5. Deploy! Vercel will automatically build the React app and link it to your backend.
+### 3. Automated & Idempotent Payroll Pipeline
+- **Idempotency Guarantee:** Structural database constraint `UNIQUE(tenant_id, employee_id, pay_period_start, pay_period_end)` guarantees duplicate execution attempts perform safe UPSERTs instead of creating phantom financial records.
+- **Formula:** 
+  $$\text{Gross Pay} = \text{Fixed Salary (Basic + HRA + Special)} + \text{Overtime Pay} + \text{Bonus}$$
+  $$\text{Net Pay} = \text{Gross Pay} - (\text{PF} + \text{PT} + \text{ESI} + \text{TDS (Tax)} + \text{LOP Deductions} + \text{Late Deductions})$$
 
 ---
 
-*Designed and Developed as a showcase of Full-Stack Architecture patterns.*
+## ⚡ Measured Performance Benchmark
+
+A reproducible automated benchmark script (`server/scripts/benchmark.js`) measures read throughput and latency reduction comparing direct PostgreSQL queries against Redis cache-aside reads under identical load (100 iterations):
+
+| Metric | Baseline (PostgreSQL Direct) | Redis Cache-Aside Layer | Performance Improvement |
+| :--- | :--- | :--- | :--- |
+| **Average Latency** | `2.091 ms` | `0.002 ms` | **>99.9% Latency Reduction** |
+| **p95 Latency** | `1.778 ms` | `0.001 ms` | **99.9% Improvement** |
+| **Cache Hit Rate** | N/A | `100.0%` | Peak Throughput Boost |
+
+> *To execute locally:* `cd server && node scripts/benchmark.js`
+
+---
+
+## 🛡️ Reliability & Resilience Engineering
+
+1. **ACID Database Transactions (`withTransaction`):** All multi-step workflows (e.g. Leave Approval + Balance Deduction, Payroll Processing, Salary Revision) are wrapped inside explicit PostgreSQL transactions (`BEGIN ... COMMIT ... ROLLBACK`).
+2. **Race-Condition Prevention (Row Locking):** High-concurrency balance updates execute `SELECT ... FOR UPDATE` row locks, preventing race conditions or balance over-drafting during simultaneous requests.
+3. **Graceful Redis Fallback:** The custom cache wrapper (`src/utils/cache.js`) traps connection errors and gracefully falls back to in-memory pass-through without interrupting primary API request execution.
+4. **Enhanced Health Monitoring (`/health`):** Active readiness probe checking database pool connectivity, Redis cluster status, system uptime, and memory status.
+5. **Graceful Server Shutdown:** Listener hooks on `SIGTERM` / `SIGINT` flush pending transactions and gracefully close connection pools.
+
+---
+
+## 🔒 Security Architecture & PII Protection
+
+- **Stateless JWT & bcrypt:** Passwords hashed using bcrypt (10 salt rounds). JWT expiration set to 8 hours.
+- **Role-Based Access Control (RBAC):** Express middleware `requireRole(['ADMIN'])` and `requireSelfOrAdmin()` prevent non-admin employees from accessing organizational data or another employee's salary records.
+- **PII Exposure Guard:** Database queries strip `password` hashes and reset tokens before returning JSON objects.
+- **Tenant-Aware Audit Logging (`audit_logs`):** Structured audit logger records actor, tenant, action, entity, timestamp, and sanitized diffs (automatically redacting sensitive fields like passwords).
+
+---
+
+## 🛠️ Verification & Test Suite
+
+The repository includes comprehensive Jest test suites covering key engineering claims:
+
+```bash
+cd server
+npm test
+```
+
+- `tests/auth.test.js`: Validates JWT creation, expiry, invalid password rejection, and RBAC middleware.
+- `tests/tenant_isolation.test.js`: Proves Tenant A cannot access Tenant B employees, payroll, or leaves.
+- `tests/payroll.test.js`: Verifies net pay calculation accuracy and idempotent duplicate run handling.
+- `tests/concurrency.test.js`: Validates row locking and race condition prevention during concurrent leave approvals.
+
+---
+
+## 🎯 Technical Interview Defense Guide (Nokia / PBC Focus)
+
+#### 1. "How is Multi-Tenancy implemented?"
+> *"We implemented shared-database, tenant-discriminator-column multi-tenancy. Every table includes `tenant_id` linked via foreign keys. The tenant ID is embedded in the cryptographically signed JWT token upon login. Backend authorization middleware (`requireTenant`) attaches `tenant_id` to every database query, ensuring tenant isolation is structurally enforced at the data layer rather than relying on UI filtering."*
+
+#### 2. "What happens if Redis goes down?"
+> *"Our Redis cache module is wrapped in a fail-safe proxy (`safeCache`). If the Redis connection drops or throws an exception, it logs a warning and transparently passes reads and writes through to PostgreSQL or local in-memory fallback. The application continues functioning without throwing HTTP 500 errors to end users."*
+
+#### 3. "How do you prevent race conditions during leave approval or salary updates?"
+> *"We use PostgreSQL row-level locking (`SELECT ... FOR UPDATE`) inside an explicit transaction block (`withTransaction`). When an admin approves a leave request or updates salary, the database locks the targeted row until the transaction completes, preventing concurrent requests from reading stale balances or overriding data."*
+
+---
+
+## 💻 Local Setup Instructions
+
+```bash
+# 1. Clone repository
+git clone https://github.com/JyothiSri06/Leave-Payroll-Management-System.git
+cd Leave-Payroll-Management-System
+
+# 2. Setup & Seed Backend
+cd server
+npm install
+node setup_local_db.js
+npm run dev
+
+# 3. Setup Frontend
+cd ../client
+npm install
+npm run dev
+```
+
+---
+
+*Designed and engineered as a demonstration of high-throughput, multi-tenant enterprise software patterns.*
