@@ -1,6 +1,9 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Reset legacy single-tenant tables if re-applying schema on existing database
+DROP TABLE IF EXISTS audit_logs, salary_revisions, payroll_runs, attendance, leave_ledger, leave_balances, employees, tenants CASCADE;
+
 -- 0. Tenants Table (Multi-tenant Architecture)
 CREATE TABLE IF NOT EXISTS tenants (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
